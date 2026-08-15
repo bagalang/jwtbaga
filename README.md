@@ -2,6 +2,25 @@
 
 JWT / JWS (RFC 7519 / 7518) for Baga — pure library + small demo HTTP server.
 
+This repository is the package. The compiler, `std`, and `httpdbaga`
+stay in the baga language monorepo (`httpdbaga` is itself a submodule).
+Check this tree out as `app-product/jwtbaga` there (git submodule) so
+path deps and `-I app-product` keep working.
+
+## Checkout
+
+Inside a baga language clone:
+
+```bash
+git submodule update --init --recursive
+# or, first time from a fresh baga tree without the submodule recorded:
+git clone git@github.com:bagalang/jwtbaga.git app-product/jwtbaga
+```
+
+`sandak.toml` keeps path deps (`../../std`, `../httpdbaga`).
+`fmrbaga` and `oauthbaga` still depend on `../jwtbaga`.
+`tests/jwt_test.baga` stays in baga.
+
 Built on the full TLS crypto stack:
 
 | Alg | Sign | Verify | Backend |
