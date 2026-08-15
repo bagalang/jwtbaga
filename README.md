@@ -75,3 +75,7 @@ curl -H "Authorization: Bearer $TOKEN" localhost:8080/protected
 ## Effects
 
 `jwt.baga` is **pure**. Effects only in `server.baga` (`!IO !Net !Par`).
+
+## License
+
+[MIT](LICENSE) — Copyright (c) 2026 Dim Gigov.
