@@ -15,10 +15,22 @@ import "std/str/str.baga"
 
 // "Bearer abc" -> "abc"; "" when the header is not a Bearer token.
 fn bearer(auth: str) -> str {
-    if str_starts_with(auth, "Bearer ") {
-        return substr(auth, 7, len(auth))
+    if len(auth) < 7 {
+        return ""
     }
-    return ""
+    let want = "bearer "
+    let mut i: i64 = 0
+    while i < 7 {
+        let mut c = char_at(auth, i)
+        if c >= 65 && c <= 90 {
+            c = c + 32
+        }
+        if c != char_at(want, i) {
+            return ""
+        }
+        i = i + 1
+    }
+    return substr(auth, 7, len(auth))
 }
 
 fn resolve_secret() -> str !IO {
@@ -36,7 +48,7 @@ fn handle(fd: i64, secret: str) -> i64 !IO !Net {
         let sub = http_query_param(req, "sub")
         let payload = concat(concat("{\"sub\":", json_escape(sub)), "}")
         let token = jwt_encode(secret, payload)
-        let body = concat(concat("{\"token\":\"", token), "\"}")
+        let body = concat(concat("{\"token\":", json_escape(token)), "}")
         return http_respond(fd, http_json_response(200, body))?
     }
 
@@ -45,7 +57,7 @@ fn handle(fd: i64, secret: str) -> i64 !IO !Net {
         // HS256 + header.alg check (rejects alg:none)
         if token != "" && jwt_verify_hs256(secret, token) == 1 {
             let sub = jwt_claim_str(token, "sub")
-            let body = concat(concat("{\"valid\":true,\"sub\":\"", sub), "\"}")
+            let body = concat(concat("{\"valid\":true,\"sub\":", json_escape(sub)), "}")
             return http_respond(fd, http_json_response(200, body))?
         }
         return http_respond(fd, http_json_response(401, "{\"valid\":false}"))?
@@ -55,7 +67,7 @@ fn handle(fd: i64, secret: str) -> i64 !IO !Net {
         let token = bearer(http_header(req, "Authorization"))
         if token != "" && jwt_verify_hs256(secret, token) == 1 {
             let sub = jwt_claim_str(token, "sub")
-            let body = concat(concat("{\"secret\":\"the cake is a lie\",\"sub\":\"", sub), "\"}")
+            let body = concat(concat("{\"secret\":\"the cake is a lie\",\"sub\":", json_escape(sub)), "}")
             return http_respond(fd, http_json_response(200, body))?
         }
         return http_respond(fd, http_json_response(401, "{\"error\":\"unauthorized\"}"))?
@@ -74,8 +86,12 @@ fn handle_conn(fd: i64) -> i64 !IO !Net {
 
 fn main() -> i64 !Net !IO !Par {
     let mut port: i64 = 8080
-    if env("PORT") != "" {
-        port = parse_int(env("PORT"))
+    let pe = env("PORT")?
+    if pe != "" {
+        let p = parse_int(pe)
+        if p >= 1 && p <= 65535 {
+            port = p
+        }
     }
     // warm default / validate env once
     let _secret = resolve_secret()?

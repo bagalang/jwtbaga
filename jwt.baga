@@ -20,7 +20,6 @@ import "std/crypto/sha256.baga"
 import "std/bytes/bytes.baga"
 import "std/json/json.baga"
 import "std/json/json_write.baga"
-import "std/json/json_strict.baga"
 import "std/str/str.baga"
 
 // ---------- token split ----------
@@ -78,11 +77,22 @@ fn jwt_alg(token: str) -> str {
 }
 
 // Reject alg:none and empty / missing alg.
-fn jwt_alg_is_none(alg: str) -> i64 {
-    if alg == "" {
-        return 1
+fn jwt_ascii_lower(s: str) -> str {
+    let mut out = ""
+    for i in 0..len(s) {
+        let c = char_at(s, i)
+        if c >= 65 && c <= 90 {
+            out = concat(out, chr(c + 32))
+        } else {
+            out = concat(out, substr(s, i, i + 1))
+        }
     }
-    if alg == "none" || alg == "None" || alg == "NONE" {
+    return out
+}
+
+fn jwt_alg_is_none(alg: str) -> i64 {
+    let a = jwt_ascii_lower(alg)
+    if a == "" || a == "none" {
         return 1
     }
     return 0
@@ -250,17 +260,26 @@ fn jwt_claim_int(token: str, name: str) -> i64 {
 // 1 if exp/nbf (when present) accept now_s (unix seconds).
 // Missing exp/nbf → ok. exp == 0 treated as missing for claim_int.
 fn jwt_time_ok(token: str, now_s: i64) -> i64 {
+    return jwt_time_ok_leeway(token, now_s, 0)
+}
+
+// skew_s ≥ 0 seconds of clock slack: valid while now < exp+skew and now+skew ≥ nbf.
+fn jwt_time_ok_leeway(token: str, now_s: i64, skew_s: i64) -> i64 {
+    let mut skew = skew_s
+    if skew < 0 {
+        skew = 0
+    }
     let exp_raw = jwt_claim(token, "exp")
     if exp_raw != "" && char_at(exp_raw, 0) != 34 {
         let exp = parse_int(exp_raw)
-        if exp > 0 && now_s >= exp {
+        if exp > 0 && now_s >= exp + skew {
             return 0
         }
     }
     let nbf_raw = jwt_claim(token, "nbf")
     if nbf_raw != "" && char_at(nbf_raw, 0) != 34 {
         let nbf = parse_int(nbf_raw)
-        if nbf > 0 && now_s < nbf {
+        if nbf > 0 && now_s + skew < nbf {
             return 0
         }
     }
@@ -310,11 +329,15 @@ fn jwt_accept_hs256(key: str, token: str, now_s: i64, iss: str, aud: str) -> i64
         return 0
     }
     if iss != "" {
-        if jwt_iss_ok(token, iss) == 0 {
+        if jwt_claim_str(token, "iss") != iss {
             return 0
         }
     }
     if aud != "" {
+        let raw = jwt_claim(token, "aud")
+        if raw == "" {
+            return 0
+        }
         if jwt_aud_ok(token, aud) == 0 {
             return 0
         }

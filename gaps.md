@@ -127,3 +127,16 @@ with RS256/ES256.
 | G5–G9 | **closed** |
 | G10 RS256/ES256 verify | **closed** (TLS crypto) |
 | G11 asymmetric sign | open (optional) |
+| G12 accept iss/aud fail-open | **closed** (2026-08-24) |
+
+## G12 — `jwt_accept_hs256` accepted missing iss/aud
+
+**Symptom.** `jwt_iss_ok` / `jwt_aud_ok` treat a missing claim as OK.
+`jwt_accept_hs256(key, tok, now, "https://idp", "api")` still returned 1
+when the token had no `iss`/`aud`.
+
+**Workaround.** Accept requires the claim when the expected string is
+non-empty. Standalone `jwt_iss_ok` stays "if present, must match".
+
+**Verdict.** Closed 2026-08-24. Also: `alg:none` ASCII-folded; `exp`/`nbf`
+leeway helper; demo JSON/`PORT`/`Bearer` hygiene.

@@ -40,7 +40,8 @@ RS256/ES256 is what OIDC / API gateways need when tokens come from a provider.
 fn jwt_encode(key, payload_json) -> str          // always alg=HS256
 fn jwt_verify_hs256(key, token) -> i64           // checks header.alg
 fn jwt_decode(key, token) -> str                 // payload or ""
-fn jwt_accept_hs256(key, token, now_s, iss, aud) -> i64  // + exp/nbf/iss/aud
+fn jwt_accept_hs256(key, token, now_s, iss, aud) -> i64  // + exp/nbf; iss/aud required if non-empty
+fn jwt_time_ok_leeway(token, now_s, skew_s) -> i64
 
 // --- discover / claims (read after verify) ---
 fn jwt_alg(token) -> str
