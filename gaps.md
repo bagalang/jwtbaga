@@ -112,7 +112,7 @@ key API).
 `jwt_encode_rs256(n, d, payload)` в jwt.baga + `rsa_pkcs1_sha256_sign` в
 std/crypto/rsa.baga (EMSA-PKCS1-v1.5 ENCODE + EM^d mod n). PEM private keys
 се парсират от `std/crypto/pkey.baga` (`pkey_parse_pem` → PKey.rsa_n/rsa_d).
-ES256 sign остава open (нужен е deterministic k — RFC 6979).
+ES256 sign затворен 2026-10-31 (детерминистичен k = SHA256(d||msg) mod n; пълната RFC 6979 HMAC-верига е бележка за бъдеще).
 
 ---
 

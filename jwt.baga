@@ -207,6 +207,20 @@ fn jwt_decode_rs256(n: bytes, e: bytes, token: str) -> str {
 
 // ---------- ES256 verify (P-256, raw R||S) ----------
 
+// G11 (ES256, closed 2026-10-31): deterministic sign (RFC 6979) с private
+// scalar d32. Публичният ключ се изчислява като Q = d32·G — за verify
+// извикваш с qx/qy от сертификата. Връща JWS token или "" при грешка.
+fn jwt_encode_es256(d32: bytes, payload_json: str) -> str {
+    let h = base64url_encode_b(bytes_of_str("{\"alg\":\"ES256\",\"typ\":\"JWT\"}"))
+    let p = base64url_encode_b(bytes_of_str(payload_json))
+    let signing = concat(concat(h, "."), p)
+    let sig = ecdsa_p256_sign_sha256_raw(d32, bytes_of_str(signing))
+    if bytes_len(sig) == 0 {
+        return ""
+    }
+    return concat(concat(signing, "."), base64url_encode_b(sig))
+}
+
 fn jwt_verify_es256(qx: bytes, qy: bytes, token: str) -> i64 {
     let alg = jwt_alg(token)
     if alg != "ES256" {
