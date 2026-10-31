@@ -164,7 +164,20 @@ fn jwt_decode_hs256(key: str, token: str) -> str {
     return jwt_decode(key, token)
 }
 
-// ---------- RS256 verify (OIDC / access tokens) ----------
+// ---------- RS256 sign (G11, closed 2026-10-31) + verify ----------
+
+// G11: издаване на RS256 токени с private key. n/d са big-endian от PEM
+// (виж std/crypto/pkey.baga pkey_parse_pem → PKey.rsa_n / rsa_d).
+fn jwt_encode_rs256(n: bytes, d: bytes, payload_json: str) -> str {
+    let h = base64url_encode_b(bytes_of_str("{\"alg\":\"RS256\",\"typ\":\"JWT\"}"))
+    let p = base64url_encode_b(bytes_of_str(payload_json))
+    let signing = concat(concat(h, "."), p)
+    let sig = rsa_pkcs1_sha256_sign(n, d, bytes_of_str(signing))
+    if bytes_len(sig) == 0 {
+        return ""
+    }
+    return concat(concat(signing, "."), base64url_encode_b(sig))
+}
 
 // n, e: RSA public key big-endian (e often x"010001").
 fn jwt_verify_rs256(n: bytes, e: bytes, token: str) -> i64 {

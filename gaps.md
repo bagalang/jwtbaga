@@ -107,16 +107,12 @@ back bare (`7`). The caller must know each claim's type.
 `jwt_verify_es256` use `rsa` + `p256`. Signing still HS256-only (no private
 key API).
 
-## G11 — private key sign for RS256/ES256
+## G11 — ~~private key sign for RS256~~ — closed 2026-10-31 (RS256)
 
-**Symptom.** Cannot *issue* RS256/ES256 tokens; only verify.
-
-**Workaround.** Issue with HS256 or an external IdP; verify provider tokens
-with RS256/ES256.
-
-**Severity.** Medium for a full auth server; none for resource servers.
-
-**Verdict.** Future: RSA/ECDSA sign + PEM/JWK loaders.
+`jwt_encode_rs256(n, d, payload)` в jwt.baga + `rsa_pkcs1_sha256_sign` в
+std/crypto/rsa.baga (EMSA-PKCS1-v1.5 ENCODE + EM^d mod n). PEM private keys
+се парсират от `std/crypto/pkey.baga` (`pkey_parse_pem` → PKey.rsa_n/rsa_d).
+ES256 sign остава open (нужен е deterministic k — RFC 6979).
 
 ---
 
@@ -126,7 +122,7 @@ with RS256/ES256.
 |-----|---------|
 | G5–G9 | **closed** |
 | G10 RS256/ES256 verify | **closed** (TLS crypto) |
-| G11 asymmetric sign | open (optional) |
+| G11 asymmetric sign | **closed** (RS256, 2026-10-31); ES256 open |
 | G12 accept iss/aud fail-open | **closed** (2026-08-24) |
 
 ## G12 — `jwt_accept_hs256` accepted missing iss/aud
